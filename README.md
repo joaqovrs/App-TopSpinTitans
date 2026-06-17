@@ -31,15 +31,15 @@ La app es **privada para los jugadores** y se conecta a un backend en **Supabase
 
 | | Funcionalidad | Descripción |
 |---|---|---|
-| 🏠 | **Inicio** | Tu posición en la liga, notificaciones de acciones pendientes, partidos en vivo y tus últimos resultados. |
-| ⚔️ | **Retos en tiempo real** | Desafiá a otros jugadores. Las invitaciones, aceptaciones y resultados se actualizan al instante (Supabase Realtime). |
+| 🏠 | **Inicio** | Posición en la liga, notificaciones de acciones pendientes, partidos en vivo y últimos resultados. |
+| ⚔️ | **Retos en tiempo real** | Desafía a otros jugadores. Las invitaciones, aceptaciones y resultados se actualizan al instante (Supabase Realtime). |
 | ✅ | **Doble validación** | Un jugador carga el resultado y el oponente debe confirmarlo antes de que cuente. |
 | 🏆 | **Ranking en vivo** | Podio de los 3 primeros + lista completa. Se calcula al vuelo desde el backend, solo con partidos validados de la temporada activa. |
 | 🔥 | **Racha "en llamas"** | Los jugadores con 3+ victorias seguidas se destacan con un efecto de fuego animado. |
-| 📊 | **Historial** | Todos tus partidos finalizados con sus marcadores. |
-| 👤 | **Perfil** | Editá tu nombre y foto, y accedé al panel si sos admin. |
+| 📊 | **Historial** | Todos los partidos finalizados con sus marcadores. |
+| 👤 | **Perfil** | Edición de nombre y foto, y acceso al panel para administradores. |
 | 🛡️ | **Panel de administrador** | Aprobación de jugadores y gestión de temporadas (oculto para jugadores normales). |
-| 📲 | **Tarjetas para compartir** | Generá imágenes de tus resultados para compartir. |
+| 📲 | **Tarjetas para compartir** | Generación de imágenes de resultados para compartir. |
 
 ---
 
@@ -111,7 +111,7 @@ npm install
 
 ### 2. Configurar variables de entorno
 
-Copiá la plantilla y completá con los datos de tu proyecto Supabase (*Project Settings → API*):
+Copia la plantilla y complétala con los datos del proyecto Supabase (*Project Settings → API*):
 
 ```bash
 cp .env.example .env
@@ -124,13 +124,13 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key
 
 ### 3. Crear el build de desarrollo
 
-Esta app usa **librerías nativas**, por lo que necesita un *development build* (no funciona con Expo Go):
+Esta app usa **librerías nativas**, por lo que requiere un *development build* (no funciona con Expo Go):
 
 ```bash
 eas build --profile development --platform android
 ```
 
-Instalá el APK resultante en tu dispositivo.
+Luego se instala el APK resultante en el dispositivo.
 
 ### 4. Levantar el servidor de desarrollo
 
@@ -138,9 +138,9 @@ Instalá el APK resultante en tu dispositivo.
 npx expo start --dev-client
 ```
 
-Abrí la app instalada y empezá a desarrollar. ✨
+Abre la app instalada y comienza a desarrollar. ✨
 
-> 💡 Cada vez que agregás una librería con **código nativo** necesitás un nuevo build. Las librerías solo-JS las levanta Metro al instante.
+> 💡 Cada vez que se agrega una librería con **código nativo** se necesita un nuevo build. Las librerías solo-JS las carga Metro al instante.
 
 ---
 
@@ -171,7 +171,7 @@ El diseño está basado en la maqueta del proyecto en **Base44**.
 └─────────────────┘         └──────────────────────────┘
 ```
 
-La app **nunca** hace escrituras directas a la base: todo pasa por funciones RPC, y las políticas de **Row Level Security (RLS)** garantizan que cada rol (anónimo, jugador, admin) solo vea y haga lo que le corresponde.
+La app **nunca** realiza escrituras directas a la base: todo pasa por funciones RPC, y las políticas de **Row Level Security (RLS)** garantizan que cada rol (anónimo, jugador, admin) solo vea y haga lo que le corresponde.
 
 ---
 
