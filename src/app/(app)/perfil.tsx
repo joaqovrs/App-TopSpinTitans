@@ -4,7 +4,6 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
 import { EditProfileModal } from '@/components/edit-profile-modal';
+import { PerfilSkeleton } from '@/components/skeleton';
 import { useAuth } from '@/context/auth';
 import { useInicio } from '@/hooks/use-inicio';
 import { useProfile } from '@/hooks/use-profile';
@@ -36,13 +36,7 @@ export default function PerfilScreen() {
   const [editing, setEditing] = useState(false);
 
   if (loadingProfile || loadingData) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </SafeAreaView>
-    );
+    return <PerfilSkeleton />;
   }
 
   const finished = data.wins + data.losses;

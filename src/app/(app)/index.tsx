@@ -6,7 +6,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -17,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
+import { HomeSkeleton } from '@/components/skeleton';
 import { useInicio, type PendingAction } from '@/hooks/use-inicio';
 import { useLive } from '@/hooks/use-live';
 import { useProfile } from '@/hooks/use-profile';
@@ -38,13 +38,7 @@ export default function HomeScreen() {
   const notifCount = data.pending.length;
 
   if (loadingProfile || loadingData) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </SafeAreaView>
-    );
+    return <HomeSkeleton />;
   }
 
   return (
@@ -154,9 +148,15 @@ export default function HomeScreen() {
         visible={notifOpen}
         pending={data.pending}
         onClose={() => setNotifOpen(false)}
-        onSelect={() => {
+        onSelect={(matchId) => {
           setNotifOpen(false);
-          router.push('/(app)/retos');
+          // Con matchId, Retos abre directo la card de esa accion (responder/
+          // cargar/validar). Sin el (boton general), solo navega a la lista.
+          router.push(
+            matchId
+              ? { pathname: '/(app)/retos', params: { matchId } }
+              : '/(app)/retos'
+          );
         }}
       />
     </SafeAreaView>
@@ -212,7 +212,7 @@ function NotificationsModal({
   visible: boolean;
   pending: PendingAction[];
   onClose: () => void;
-  onSelect: () => void;
+  onSelect: (matchId?: string) => void;
 }) {
   const empty = pending.length === 0;
   return (
@@ -252,7 +252,7 @@ function NotificationsModal({
                 {pending.map((p) => {
                   const meta = NOTIF_META[p.action];
                   return (
-                    <Pressable key={p.matchId} style={styles.notifRow} onPress={onSelect}>
+                    <Pressable key={p.matchId} style={styles.notifRow} onPress={() => onSelect(p.matchId)}>
                       <View style={[styles.notifIcon, { backgroundColor: meta.bg }]}>
                         <Ionicons name={meta.icon} size={20} color={meta.tint} />
                       </View>
@@ -275,7 +275,7 @@ function NotificationsModal({
                 })}
               </View>
 
-              <Pressable style={styles.notifCta} onPress={onSelect}>
+              <Pressable style={styles.notifCta} onPress={() => onSelect()}>
                 <Text style={styles.notifCtaText}>Resolver en Retos</Text>
                 <Ionicons name="arrow-forward" size={18} color="#fff" />
               </Pressable>

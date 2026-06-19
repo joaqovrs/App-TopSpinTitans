@@ -1,8 +1,10 @@
 // Piezas reutilizables para las pantallas de auth (login, registro, recuperar,
 // verificar). Tema oscuro de Base44.
 import { Ionicons } from '@expo/vector-icons';
+import { createContext, useCallback, useContext, useRef } from 'react';
 import {
   ActivityIndicator,
+  findNodeHandle,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,20 +19,37 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors, fonts } from '@/lib/theme';
 
+// Permite que cada Field le pida al ScrollView contenedor que lo desplace por
+// encima del teclado al recibir foco (incluso si el teclado ya estaba abierto).
+const ScrollToInput = createContext<((node: number | null) => void) | null>(null);
+
 // Contenedor de pantallas de auth: evita que el teclado tape los campos
-// (KeyboardAvoidingView) y permite scrollear si no entra todo.
+// (KeyboardAvoidingView) y, al saltar de un input a otro con el teclado ya
+// abierto, desplaza el scroll hasta el campo enfocado.
 export function AuthScaffold({ children }: { children: React.ReactNode }) {
+  const scrollRef = useRef<ScrollView>(null);
+
+  const scrollToInput = useCallback((node: number | null) => {
+    if (node == null) return;
+    const responder = scrollRef.current?.getScrollResponder();
+    // Metodo del ScrollResponder de RN: mide el nodo nativo y lo sube por
+    // encima del teclado dejando ~100px de aire. Es lo que usan las libs
+    // "keyboard-aware" por dentro; viene en RN, sin dependencias extra.
+    (responder as any)?.scrollResponderScrollNativeHandleToKeyboard?.(node, 100, true);
+  }, []);
+
   return (
     <SafeAreaView style={styles.scaffoldSafe}>
       <KeyboardAvoidingView
         style={styles.scaffoldFlex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scaffoldContent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}>
-          {children}
+          <ScrollToInput.Provider value={scrollToInput}>{children}</ScrollToInput.Provider>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -67,6 +86,8 @@ export function Field({
   icon: keyof typeof Ionicons.glyphMap;
   rightSlot?: React.ReactNode;
 } & TextInputProps) {
+  const scrollToInput = useContext(ScrollToInput);
+  const inputRef = useRef<TextInput>(null);
   return (
     <View style={styles.fieldWrap}>
       <View style={styles.labelRow}>
@@ -76,9 +97,14 @@ export function Field({
       <View style={styles.inputBox}>
         <Ionicons name={icon} size={18} color={colors.mutedForeground} />
         <TextInput
+          ref={inputRef}
           style={styles.input}
           placeholderTextColor={colors.mutedForeground}
           {...inputProps}
+          onFocus={(e) => {
+            scrollToInput?.(findNodeHandle(inputRef.current));
+            inputProps.onFocus?.(e);
+          }}
         />
       </View>
     </View>

@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,10 +15,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
+import { ConfirmModal } from '@/components/confirm-modal';
 import { SeasonManager } from '@/components/season-manager';
+import { AdminSkeleton } from '@/components/skeleton';
 import { useAdmin, type AdminPlayer } from '@/hooks/use-admin';
 import { useProfile } from '@/hooks/use-profile';
-import { approvePlayer, rejectPlayer } from '@/lib/admin';
+import { approvePlayer, rejectPlayer, revokePlayer } from '@/lib/admin';
 import { colors, fonts } from '@/lib/theme';
 import type { MembershipStatus } from '@/lib/types';
 
@@ -36,6 +39,7 @@ export default function AdminScreen() {
     useAdmin();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [toRemove, setToRemove] = useState<AdminPlayer | null>(null);
 
   // "Todos los jugadores" = solo los aprobados (los que estan en la liga).
   // Pendientes viven en solicitudes; rechazados no se listan.
@@ -68,11 +72,14 @@ export default function AdminScreen() {
       </Pressable>
 
       {loading || loadingProfile ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <AdminSkeleton />
       ) : (
-        <ScrollView contentContainerStyle={styles.content}>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled">
           <View style={styles.titleRow}>
             <View style={styles.titleIcon}>
               <Ionicons name="shield-checkmark" size={22} color={colors.primary} />
@@ -145,15 +152,52 @@ export default function AdminScreen() {
             </View>
           </View>
           {roster.map((p) => (
-            <PlayerRow key={p.id} player={p} />
+            <PlayerRow
+              key={p.id}
+              player={p}
+              busy={busy}
+              onRemove={p.role === 'admin' ? undefined : () => setToRemove(p)}
+            />
           ))}
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       )}
+
+      {/* Confirmacion para quitar un jugador (vuelve a pendiente). */}
+      <ConfirmModal
+        visible={toRemove !== null}
+        title="Quitar jugador"
+        message={
+          toRemove
+            ? `${toRemove.display_name} volvera a estado pendiente y saldra del plantel. Podras aprobarlo de nuevo cuando quieras.`
+            : ''
+        }
+        choices={[
+          {
+            label: 'Quitar',
+            variant: 'destructive',
+            onPress: () => {
+              const id = toRemove?.id;
+              setToRemove(null);
+              if (id) run(() => revokePlayer(id));
+            },
+          },
+        ]}
+        onClose={() => setToRemove(null)}
+      />
     </SafeAreaView>
   );
 }
 
-function PlayerRow({ player }: { player: AdminPlayer }) {
+function PlayerRow({
+  player,
+  busy,
+  onRemove,
+}: {
+  player: AdminPlayer;
+  busy: boolean;
+  onRemove?: () => void;
+}) {
   const badge = STATUS[player.membership_status];
   return (
     <View style={styles.playerCard}>
@@ -171,13 +215,22 @@ function PlayerRow({ player }: { player: AdminPlayer }) {
           <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
         </View>
       </View>
-      {player.role === 'admin' && <Text style={styles.adminTag}>Admin</Text>}
+      {player.role === 'admin' ? (
+        <Text style={styles.adminTag}>Admin</Text>
+      ) : (
+        onRemove && (
+          <Pressable style={styles.removeBtn} disabled={busy} onPress={onRemove}>
+            <Ionicons name="trash-outline" size={18} color={colors.destructive} />
+          </Pressable>
+        )
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 16, paddingBottom: 32, gap: 16 },
 
@@ -270,4 +323,13 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontFamily: fonts.semibold, fontSize: 12 },
   adminTag: { color: colors.primary, fontFamily: fonts.bold, fontSize: 12 },
+  removeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.destructive,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

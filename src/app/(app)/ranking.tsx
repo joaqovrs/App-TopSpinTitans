@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
-  ActivityIndicator,
   Animated,
   Easing,
   Pressable,
@@ -20,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/avatar';
 import { FadeIn } from '@/components/fade-in';
 import { ProgressBar } from '@/components/progress-bar';
+import { RankingSkeleton } from '@/components/skeleton';
 import { useRealtime } from '@/hooks/use-realtime';
 import { supabase } from '@/lib/supabase';
 import { colors, fonts } from '@/lib/theme';
@@ -213,13 +213,7 @@ export default function RankingScreen() {
   const rest = rows.slice(3);
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </SafeAreaView>
-    );
+    return <RankingSkeleton />;
   }
 
   if (error) {

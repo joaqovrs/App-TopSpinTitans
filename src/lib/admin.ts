@@ -12,6 +12,13 @@ export async function rejectPlayer(playerId: string): Promise<void> {
   if (error) throw error;
 }
 
+// Deshace una aprobacion: el jugador vuelve a 'pending'. El backend lo bloquea
+// si la temporada ya esta en curso (active).
+export async function revokePlayer(playerId: string): Promise<void> {
+  const { error } = await supabase.rpc('revoke_player', { p_player_id: playerId });
+  if (error) throw error;
+}
+
 // --- Gestion de temporada ---
 
 export async function createSeason(

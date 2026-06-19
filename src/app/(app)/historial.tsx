@@ -20,6 +20,7 @@ import { CountUp } from '@/components/count-up';
 import { FadeIn } from '@/components/fade-in';
 import { ProgressBar } from '@/components/progress-bar';
 import { ShareCard } from '@/components/share-card';
+import { HistorialSkeleton } from '@/components/skeleton';
 import { computeStats, useHistorial, type HistorialItem } from '@/hooks/use-historial';
 import { useProfile } from '@/hooks/use-profile';
 import { useShareMatch } from '@/hooks/use-share-match';
@@ -75,13 +76,7 @@ export default function HistorialScreen() {
   }
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </SafeAreaView>
-    );
+    return <HistorialSkeleton />;
   }
 
   return (

@@ -1,10 +1,10 @@
 // Retos: lista de oponentes de la temporada con el estado de mi partido contra
 // cada uno y la accion que corresponde (retar / responder / cargar / validar).
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Animated,
   Dimensions,
   FlatList,
@@ -23,6 +23,7 @@ import { ConfirmModal, type Choice } from '@/components/confirm-modal';
 import { FadeIn } from '@/components/fade-in';
 import { PressableScale } from '@/components/pressable-scale';
 import { ScoreModal } from '@/components/score-modal';
+import { RetosSkeleton } from '@/components/skeleton';
 import { ValidateModal } from '@/components/validate-modal';
 import { useProfile } from '@/hooks/use-profile';
 import { useRetos, type RetoItem } from '@/hooks/use-retos';
@@ -31,9 +32,19 @@ import { colors, fonts } from '@/lib/theme';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
+// Candado en memoria (nivel modulo) de victorias ya festejadas en ESTA sesion de
+// la app. Sobrevive a que la pantalla de Retos se remonte al cambiar de tab, asi
+// que el confeti no se repite dentro de la sesion aunque la lectura del disco
+// falle o llegue tarde. El disco (localStorage) se usa ademas para recordar entre
+// reinicios. Se guardan ids de partido (UUID unico), por eso no hay colision
+// entre usuarios distintos.
+const sessionCelebratedWins = new Set<string>();
+
 export default function RetosScreen() {
   const { items, loading, error, reload, uid } = useRetos();
   const { profile } = useProfile();
+  const { matchId } = useLocalSearchParams<{ matchId?: string }>();
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
   const [cargarItem, setCargarItem] = useState<RetoItem | null>(null);
@@ -52,10 +63,24 @@ export default function RetosScreen() {
     setReady(true);
   }, []);
 
-  // Confeti cuando un partido mio pasa a validado y YO gane. Las victorias ya
-  // celebradas se guardan en disco (localStorage de expo-sqlite), por jugador.
-  // Asi: al entrar a Retos festeja una victoria nueva aunque haya ocurrido con
-  // la app cerrada; y una vez celebrada, no vuelve a salir hasta que ganes otra.
+  // Si llegamos desde una notificacion (router con matchId), abrimos directo la
+  // card de la accion que corresponde (responder/cargar/validar) una vez cargada
+  // la lista. Limpiamos el parametro para que no se vuelva a disparar al volver.
+  useEffect(() => {
+    if (loading || !matchId) return;
+    const item = items.find((i) => i.match.id === matchId);
+    if (item) triggerAction(item);
+    router.setParams({ matchId: '' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, matchId, items]);
+
+  // Confeti SOLO la primera vez que una victoria mia pasa a validada. Doble
+  // candado para que no se repita al re-entrar / cambiar de tab:
+  //  1) sessionCelebratedWins (en memoria, nivel modulo): sobrevive remontajes
+  //     dentro de la sesion -> no se repite aunque el disco falle o tarde.
+  //  2) localStorage (disco): recuerda entre reinicios de la app. Guardamos la
+  //     UNION de lo ya conocido + lo nuevo, para no perder historial.
+  // Una victoria se considera "nueva" solo si NO esta en ninguno de los dos.
   const [celebrate, setCelebrate] = useState(false);
   useEffect(() => {
     if (!uid) return;
@@ -65,23 +90,27 @@ export default function RetosScreen() {
     if (wonIds.length === 0) return;
 
     const key = `retos:celebrated-wins:${uid}`;
-    let celebrated: string[] = [];
+    let stored: string[] = [];
     try {
       const raw = localStorage.getItem(key);
-      if (raw) celebrated = JSON.parse(raw);
+      if (raw) stored = JSON.parse(raw);
     } catch {
-      celebrated = [];
+      stored = [];
     }
-    const celebratedSet = new Set(celebrated);
-    const hasNew = wonIds.some((id) => !celebratedSet.has(id));
-    if (hasNew) {
-      setCelebrate(true);
-      try {
-        localStorage.setItem(key, JSON.stringify(wonIds));
-      } catch {
-        // Si el guardado falla, peor caso: vuelve a festejar la proxima vez.
-      }
+    // Lo ya festejado = lo del disco + lo de esta sesion.
+    const known = new Set<string>([...stored, ...sessionCelebratedWins]);
+
+    const newWins = wonIds.filter((id) => !known.has(id));
+    if (newWins.length === 0) return; // todas ya festejadas -> no hay confeti
+
+    // Registrar en ambos candados ANTES de festejar.
+    newWins.forEach((id) => sessionCelebratedWins.add(id));
+    try {
+      localStorage.setItem(key, JSON.stringify([...known, ...newWins]));
+    } catch {
+      // Si el disco falla, el candado en memoria igual evita repetir en la sesion.
     }
+    setCelebrate(true);
   }, [items, uid]);
 
   const myName = profile?.display_name ?? 'Vos';
@@ -142,13 +171,7 @@ export default function RetosScreen() {
   );
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </SafeAreaView>
-    );
+    return <RetosSkeleton />;
   }
 
   return (
