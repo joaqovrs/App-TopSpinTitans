@@ -5,10 +5,14 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
 
 import { useAuth } from '@/context/auth';
+import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { colors, fonts } from '@/lib/theme';
 
 export default function AppLayout() {
   const { session, loading } = useAuth();
+
+  // Registra el token de push y maneja el deep linking al tocar una notificacion.
+  usePushNotifications();
 
   if (loading) return null;
   if (!session) return <Redirect href="/(auth)/login" />;
@@ -74,6 +78,12 @@ export default function AppLayout() {
           cuando esta activo (tabBarStyle display none). Se entra desde Perfil. */}
       <Tabs.Screen
         name="admin"
+        options={{ href: null, tabBarStyle: { display: 'none' } }}
+      />
+      {/* Ceremonia de fin de temporada: fuera de la barra, sin tab bar. Se entra
+          automaticamente al cerrar una temporada o por la notificacion. */}
+      <Tabs.Screen
+        name="podio"
         options={{ href: null, tabBarStyle: { display: 'none' } }}
       />
     </Tabs>

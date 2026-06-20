@@ -48,7 +48,7 @@ function onFire(s: Standing): boolean {
 }
 
 function record(s: Standing): string {
-  return `${s.wins}G / ${s.losses}P`;
+  return `${s.wins}V / ${s.losses}D`;
 }
 
 // Capa naranja que titila como llama (detras del contenedor en racha).

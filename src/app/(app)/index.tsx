@@ -4,7 +4,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
 import { HomeSkeleton } from '@/components/skeleton';
+import { useCampeones } from '@/hooks/use-campeones';
 import { useInicio, type PendingAction } from '@/hooks/use-inicio';
 import { useLive } from '@/hooks/use-live';
 import { useProfile } from '@/hooks/use-profile';
@@ -31,11 +32,23 @@ export default function HomeScreen() {
   const { profile, loading: loadingProfile } = useProfile();
   const { data, loading: loadingData } = useInicio();
   const { ongoing, finished } = useLive();
+  const { shouldCelebrate, markCelebrated, seasonEndedAlert, champion } = useCampeones();
   const [notifOpen, setNotifOpen] = useState(false);
+
+  // La PRIMERA vez que entras tras cerrarse la temporada, abrimos la ceremonia
+  // sola. markCelebrated corta la auto-apertura; la alerta de la campana queda.
+  const celebratedRef = useRef(false);
+  useEffect(() => {
+    if (shouldCelebrate && !celebratedRef.current) {
+      celebratedRef.current = true;
+      markCelebrated();
+      router.push('/(app)/podio');
+    }
+  }, [shouldCelebrate, markCelebrated, router]);
 
   const name = profile?.display_name ?? '';
   const approved = profile?.membership_status === 'approved';
-  const notifCount = data.pending.length;
+  const notifCount = data.pending.length + (seasonEndedAlert ? 1 : 0);
 
   if (loadingProfile || loadingData) {
     return <HomeSkeleton />;
@@ -147,6 +160,15 @@ export default function HomeScreen() {
       <NotificationsModal
         visible={notifOpen}
         pending={data.pending}
+        championAlert={
+          seasonEndedAlert && champion
+            ? { name: champion.display_name, seasonName: seasonEndedAlert.seasonName }
+            : null
+        }
+        onOpenPodium={() => {
+          setNotifOpen(false);
+          router.push('/(app)/podio');
+        }}
         onClose={() => setNotifOpen(false)}
         onSelect={(matchId) => {
           setNotifOpen(false);
@@ -206,15 +228,19 @@ const NOTIF_META: Record<
 function NotificationsModal({
   visible,
   pending,
+  championAlert,
+  onOpenPodium,
   onClose,
   onSelect,
 }: {
   visible: boolean;
   pending: PendingAction[];
+  championAlert: { name: string; seasonName: string } | null;
+  onOpenPodium: () => void;
   onClose: () => void;
   onSelect: (matchId?: string) => void;
 }) {
-  const empty = pending.length === 0;
+  const empty = pending.length === 0 && !championAlert;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.notifBackdrop} onPress={onClose}>
@@ -227,7 +253,9 @@ function NotificationsModal({
               <Text style={styles.notifTitle}>Notificaciones</Text>
               {!empty && (
                 <View style={styles.notifCountPill}>
-                  <Text style={styles.notifCountText}>{pending.length}</Text>
+                  <Text style={styles.notifCountText}>
+                    {pending.length + (championAlert ? 1 : 0)}
+                  </Text>
                 </View>
               )}
             </View>
@@ -243,12 +271,35 @@ function NotificationsModal({
               </View>
               <Text style={styles.notifEmptyText}>Estás al día</Text>
               <Text style={styles.notifEmptySub}>
-                Cuando alguien te rete o tengas que cargar un resultado, lo verás acá.
+                Cuando alguien te rete o tengas que cargar un resultado, lo verás aquí.
               </Text>
             </View>
           ) : (
             <>
               <View style={styles.notifList}>
+                {championAlert && (
+                  <Pressable style={[styles.notifRow, styles.champRow]} onPress={onOpenPodium}>
+                    <View style={[styles.notifIcon, styles.champIcon]}>
+                      <Ionicons name="trophy" size={20} color={colors.gold} />
+                    </View>
+                    <View style={styles.notifInfo}>
+                      <View style={styles.notifTagRow}>
+                        <View style={[styles.notifTag, styles.champIcon]}>
+                          <Text style={[styles.notifTagText, { color: colors.gold }]}>
+                            Temporada finalizada
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.notifRowTitle} numberOfLines={1}>
+                        🏆 Campeón: {championAlert.name}
+                      </Text>
+                      <Text style={styles.notifRowSub} numberOfLines={1}>
+                        Tocá para ver el podio de {championAlert.seasonName}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+                  </Pressable>
+                )}
                 {pending.map((p) => {
                   const meta = NOTIF_META[p.action];
                   return (
@@ -275,10 +326,12 @@ function NotificationsModal({
                 })}
               </View>
 
-              <Pressable style={styles.notifCta} onPress={() => onSelect()}>
-                <Text style={styles.notifCtaText}>Resolver en Retos</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
-              </Pressable>
+              {pending.length > 0 && (
+                <Pressable style={styles.notifCta} onPress={() => onSelect()}>
+                  <Text style={styles.notifCtaText}>Resolver en Retos</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#fff" />
+                </Pressable>
+              )}
             </>
           )}
         </Pressable>
@@ -470,6 +523,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  champRow: { borderColor: 'rgba(255,204,51,0.45)' },
+  champIcon: { backgroundColor: 'rgba(255,204,51,0.14)' },
   notifInfo: { flex: 1, gap: 2 },
   notifTagRow: { flexDirection: 'row' },
   notifTag: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2, marginBottom: 2 },

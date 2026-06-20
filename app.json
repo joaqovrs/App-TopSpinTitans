@@ -13,7 +13,8 @@
         "backgroundColor": "#212227"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.topspintitans.app"
+      "package": "com.topspintitans.app",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -43,6 +44,7 @@
         }
       ],
       "expo-sqlite",
+      "expo-notifications",
       [
         "expo-image-picker",
         {

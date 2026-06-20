@@ -113,7 +113,7 @@ export default function RetosScreen() {
     setCelebrate(true);
   }, [items, uid]);
 
-  const myName = profile?.display_name ?? 'Vos';
+  const myName = profile?.display_name ?? 'Tú';
 
   function nameOf(item: RetoItem) {
     return item.opponent?.display_name ?? 'Jugador';
@@ -288,8 +288,8 @@ export default function RetosScreen() {
                   {nameOf(item)}
                 </Text>
                 <Text style={styles.record}>
-                  {item.opponent?.points ?? 0} pts · {item.opponent?.wins ?? 0}G /{' '}
-                  {item.opponent?.losses ?? 0}P
+                  {item.opponent?.points ?? 0} pts · {item.opponent?.wins ?? 0}V /{' '}
+                  {item.opponent?.losses ?? 0}D
                 </Text>
               </View>
               <RowAction item={item} busy={busy} onPress={() => triggerAction(item)} />

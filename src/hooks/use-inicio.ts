@@ -28,6 +28,7 @@ export type InicioData = {
   rank: number | null; // posicion en el ranking (null si no compite aun)
   total: number; // jugadores en el ranking
   points: number;
+  pointsDiff: number; // diferencia de puntos (a favor - en contra), puede ser negativa
   wins: number;
   losses: number;
   pending: PendingAction[]; // retos/resultados que requieren mi accion
@@ -38,6 +39,7 @@ const EMPTY: InicioData = {
   rank: null,
   total: 0,
   points: 0,
+  pointsDiff: 0,
   wins: 0,
   losses: 0,
   pending: [],
@@ -119,6 +121,7 @@ export function useInicio() {
         rank: me ? myIndex + 1 : null,
         total: standings.length,
         points: me?.points ?? 0,
+        pointsDiff: me?.points_diff ?? 0,
         wins: me?.wins ?? 0,
         losses: me?.losses ?? 0,
         pending,

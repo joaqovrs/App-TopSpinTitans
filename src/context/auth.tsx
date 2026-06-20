@@ -10,6 +10,7 @@ import {
 import type { Session } from '@supabase/supabase-js';
 
 import { supabase } from '@/lib/supabase';
+import { unregisterPushToken } from '@/lib/notifications';
 
 type AuthState = {
   session: Session | null;
@@ -66,6 +67,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }
 
   async function signOut() {
+    // Dar de baja el token ANTES de cerrar sesion (la RPC exige auth.uid()).
+    // Si falla, no bloqueamos el logout.
+    try {
+      await unregisterPushToken();
+    } catch (e) {
+      console.warn('No se pudo dar de baja el token de push:', e);
+    }
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   }

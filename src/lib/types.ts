@@ -11,6 +11,8 @@ export type Standing = {
   streak: number;
   /** Foto de perfil (null = mostrar iniciales). */
   avatar_url: string | null;
+  /** Diferencia de puntos (a favor - en contra, todos los sets). Desempata a igualdad de points. Puede ser negativa. */
+  points_diff: number;
 };
 
 export type MembershipStatus = 'pending' | 'approved' | 'rejected';
@@ -24,6 +26,18 @@ export type Season = {
   status: SeasonStatus;
   start_date: string | null; // ISO yyyy-mm-dd
   end_date: string | null;
+};
+
+/** Fila de `season_champions`: podio congelado de una temporada cerrada. */
+export type SeasonChampion = {
+  season_id: string;
+  rank: 1 | 2 | 3;
+  player_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  wins: number;
+  points: number;
+  points_diff: number;
 };
 
 export type MatchStatus =

@@ -1,12 +1,13 @@
 // Piezas reutilizables para las pantallas de auth (login, registro, recuperar,
 // verificar). Tema oscuro de Base44.
 import { Ionicons } from '@expo/vector-icons';
-import { createContext, useCallback, useContext, useRef } from 'react';
+import { createContext, useCallback, useContext, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   findNodeHandle,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -80,6 +81,7 @@ export function Field({
   label,
   icon,
   rightSlot,
+  secureTextEntry,
   ...inputProps
 }: {
   label: string;
@@ -88,6 +90,9 @@ export function Field({
 } & TextInputProps) {
   const scrollToInput = useContext(ScrollToInput);
   const inputRef = useRef<TextInput>(null);
+  // Si el campo es de contraseña, sumamos un boton de ojo para mostrar/ocultar.
+  const isPassword = !!secureTextEntry;
+  const [revealed, setRevealed] = useState(false);
   return (
     <View style={styles.fieldWrap}>
       <View style={styles.labelRow}>
@@ -100,12 +105,30 @@ export function Field({
           ref={inputRef}
           style={styles.input}
           placeholderTextColor={colors.mutedForeground}
+          secureTextEntry={isPassword && !revealed}
           {...inputProps}
           onFocus={(e) => {
-            scrollToInput?.(findNodeHandle(inputRef.current));
+            // findNodeHandle / el scroll-al-input es exclusivo de movil (subir el
+            // campo por encima del teclado). En web no aplica y findNodeHandle crashea.
+            if (Platform.OS !== 'web') {
+              scrollToInput?.(findNodeHandle(inputRef.current));
+            }
             inputProps.onFocus?.(e);
           }}
         />
+        {isPassword && (
+          <Pressable
+            onPress={() => setRevealed((v) => !v)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+            <Ionicons
+              name={revealed ? 'eye-off-outline' : 'eye-outline'}
+              size={18}
+              color={colors.mutedForeground}
+            />
+          </Pressable>
+        )}
       </View>
     </View>
   );

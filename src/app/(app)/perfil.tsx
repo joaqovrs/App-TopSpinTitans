@@ -16,6 +16,7 @@ import { Avatar } from '@/components/avatar';
 import { EditProfileModal } from '@/components/edit-profile-modal';
 import { PerfilSkeleton } from '@/components/skeleton';
 import { useAuth } from '@/context/auth';
+import { useCampeones } from '@/hooks/use-campeones';
 import { useInicio } from '@/hooks/use-inicio';
 import { useProfile } from '@/hooks/use-profile';
 import { colors, fonts } from '@/lib/theme';
@@ -33,6 +34,7 @@ export default function PerfilScreen() {
   const { session, signOut } = useAuth();
   const { profile, loading: loadingProfile, reload: reloadProfile } = useProfile();
   const { data, loading: loadingData } = useInicio();
+  const { isReigningChampion, reigningTitle } = useCampeones();
   const [editing, setEditing] = useState(false);
 
   if (loadingProfile || loadingData) {
@@ -64,6 +66,12 @@ export default function PerfilScreen() {
           </Pressable>
 
           <View style={styles.badges}>
+            {isReigningChampion && (
+              <View style={[styles.badge, styles.champBadge]}>
+                <Ionicons name="trophy" size={13} color={colors.gold} />
+                <Text style={[styles.badgeText, { color: colors.gold }]}>{reigningTitle}</Text>
+              </View>
+            )}
             {status && (
               <View style={[styles.badge, { backgroundColor: status.bg }]}>
                 <Ionicons name="shield-checkmark" size={13} color={status.color} />
@@ -88,6 +96,13 @@ export default function PerfilScreen() {
           />
           <View style={styles.divider} />
           <StatRow
+            icon={<MaterialCommunityIcons name="table-tennis" size={20} color={colors.accent} />}
+            tint="rgba(0,225,255,0.14)"
+            label="Diferencia de puntos"
+            value={`${data.pointsDiff > 0 ? '+' : ''}${data.pointsDiff}`}
+          />
+          <View style={styles.divider} />
+          <StatRow
             icon={<Ionicons name="flame" size={20} color={colors.gold} />}
             tint="rgba(255,204,51,0.14)"
             label="Tasa de victoria"
@@ -98,7 +113,7 @@ export default function PerfilScreen() {
             icon={<Ionicons name="trending-up" size={20} color={GREEN} />}
             tint="rgba(46,184,46,0.14)"
             label="Partidos jugados"
-            value={`${finished} (${data.wins}G / ${data.losses}P)`}
+            value={`${finished} (${data.wins}V / ${data.losses}D)`}
           />
           <View style={styles.divider} />
           <StatRow
@@ -200,6 +215,11 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   badgeText: { fontFamily: fonts.semibold, fontSize: 13 },
+  champBadge: {
+    backgroundColor: 'rgba(255,204,51,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,204,51,0.4)',
+  },
   roleBadge: { backgroundColor: colors.secondary },
   roleText: { color: colors.secondaryForeground, fontFamily: fonts.semibold, fontSize: 13 },
 
